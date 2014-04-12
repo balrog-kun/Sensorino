@@ -16,7 +16,7 @@
 extern "C"
 #endif
 
-#include <Sensorino_Protocol.h>
+#include <Sensorino.h>
 
 //Addresses:
 byte broadCastAddress[4] = {BROADCAST_ADDR};
@@ -55,6 +55,9 @@ boolean startRadio(byte chipEnablePin, byte chipSelectPin, byte irqPin, byte myA
 }
 
 boolean send(boolean broadcast, byte* destination, MessageType msgType, byte* data, int len){
+    boolean OK;
+    SensorinoRuleEngine *re;
+
     if(broadcast){
         if(!nRF24.setTransmitAddress(broadCastAddress)) return false;
     }
@@ -71,7 +74,13 @@ boolean send(boolean broadcast, byte* destination, MessageType msgType, byte* da
     for(int i=0; i<len; i++){
         pkt[i+5] = data[i];
     }
-    return nRF24.send(pkt, totlen, broadcast);
+    OK = nRF24.send(pkt, totlen, broadcast);
+
+    re = getRuleEngine();
+    if (re)
+        re->handleServiceMessage(pkt + 4, totlen - 4);
+
+    return OK;
 }
 
 boolean receive(unsigned int timeoutMS, boolean* broadcast, byte* sender, MessageType* msgType,

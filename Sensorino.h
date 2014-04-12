@@ -11,6 +11,7 @@
 #include <Sensorino_Protocol.h>
 #include <Service.h>
 #include <SensorinoService.h>
+#include <SensorinoRuleEngine.h>
 
 //Maximum nuber of instantiable sensorino services (excluding control ones)
 #define MAX_SERVICES 10
@@ -39,9 +40,17 @@ boolean runServices();
  */
 void sleep();
 
-/** Waits for incoming packets and dispatches them to services
+/** Waits for incoming packets and calls handleMessage on each.
  * this function should be always called, but if a sleep intervenes, packets will get lost meanwhile
  * @param timeoutMS a timeout in milliseconds
  * @return true if a packet was received
  */
 boolean receive(unsigned int timeoutMS);
+
+/** Dispatches a fresh new message to the appropriate service */
+boolean handleMessage(boolean broadcast, MessageType msgType,
+        byte* data, int len);
+
+/** Set and retrieve the Rule Engine service in use */
+boolean addRuleEngine(SensorinoRuleEngine* newEngine);
+SensorinoRuleEngine* getRuleEngine();

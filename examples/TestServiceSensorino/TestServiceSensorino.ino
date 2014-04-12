@@ -60,6 +60,9 @@ void setup() {
   byte myAddr[4] = {1,100,2,200}; //Sensorino address
   if(!startRadio(9, 10, 2, myAddr)) Serial.println("Cannot init!");
 
+  //enable rule processing
+  new SensorinoRuleEngine();
+
   //add services
   addService(&service);
 

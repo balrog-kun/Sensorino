@@ -87,6 +87,37 @@ void sleep(){
     sleepUntil(sleepSecs, pins, pinsN);
 }
 
+boolean handleMessage(boolean broadcast, MessageType msgType,
+        byte* data, int len){
+    if(msgType == CTRL){
+        ControlType ctrlt;
+        byte ctrlData[MAX_CONTROL_PAYLOAD_LEN];
+        int datalen;
+        unmakeCtrlPayload(data, len, &ctrlt, ctrlData, &datalen);
+        //TODO: serve control packet
+    }
+    if(msgType == ERR){
+        ErrorType errt;
+        byte errData[MAX_ERROR_PAYLOAD_LEN];
+        int datalen;
+        unmakeErrorPayload(data, len, &errt, errData, &datalen);
+        //TODO: serve control packet
+    }
+    if((msgType == PUBLISH)||(msgType == REQUEST)||(msgType == SET)){
+        unsigned int serviceID;
+        byte serviceInstID;
+        DataFormat df;
+        byte serviceData[MAX_SERVICE_PAYLOAD_LEN];
+        int datalen;
+        unmakeServicePayload(data, len, &serviceID, &serviceInstID, &df, serviceData, &datalen);
+        for(int i=0; i<servicesN; i++){
+            if((services[i]->getServiceTypeID() == serviceID) &&
+               (services[i]->getServiceInstanceID() == serviceInstID)){
+                   services[i]->handleMessage(broadcast, msgType, df, serviceData, datalen);
+            }
+        }
+    }
+}
 
 boolean receive(unsigned int timeoutMS){
     boolean broadcast;
@@ -97,32 +128,22 @@ boolean receive(unsigned int timeoutMS){
     boolean received = receive(timeoutMS, &broadcast, sender, &msgType, databuffer, &len);
     if(!received) return false;
 
-    if(msgType == CTRL){
-            ControlType ctrlt;
-            byte ctrlData[MAX_CONTROL_PAYLOAD_LEN];
-            int datalen;
-            unmakeCtrlPayload(databuffer, len, &ctrlt, ctrlData, &datalen);
-            //TODO: serve control packet
-        }
-        if(msgType == ERR){
-            ErrorType errt;
-            byte errData[MAX_ERROR_PAYLOAD_LEN];
-            int datalen;
-            unmakeErrorPayload(databuffer, len, &errt, errData, &datalen);
-            //TODO: serve control packet
-        }
-        if((msgType == PUBLISH)||(msgType == REQUEST)||(msgType == SET)){
-            unsigned int serviceID;
-            byte serviceInstID;
-            DataFormat df;
-            byte serviceData[MAX_SERVICE_PAYLOAD_LEN];
-            int datalen;
-            unmakeServicePayload(databuffer, len, &serviceID, &serviceInstID, &df, serviceData, &datalen);
-            for(int i=0; i<servicesN; i++){
-                if((services[i]->getServiceTypeID() == serviceID) &&
-                   (services[i]->getServiceInstanceID() == serviceInstID)){
-                       services[i]->handleMessage(broadcast, msgType, df, serviceData, datalen);
-                   }
-            }
-        }
+    handleMessage(broadcast, msgType, databuffer, len);
+}
+
+static SensorinoRuleEngine* ruleEngine;
+
+boolean addRuleEngine(SensorinoRuleEngine* newRuleEngine){
+    if(ruleEngine && newRuleEngine)
+        /* Only one engine allowed atm */
+        return false;
+
+    ruleEngine = newRuleEngine;
+    addService(newRuleEngine);
+
+    return true;
+}
+
+SensorinoRuleEngine* getRuleEngine(void){
+    return ruleEngine;
 }
